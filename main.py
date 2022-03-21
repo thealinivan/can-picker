@@ -1,9 +1,12 @@
-from get_image import getImage
+from cam import openCam
 
-res = {"x": 64, "y": 64}
-img = getImage(res)
+#open cam (res: h, w)
+openCam(480, 640)
 
-print(img)
+
+
+
+
 
 
 
