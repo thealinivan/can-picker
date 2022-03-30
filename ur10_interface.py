@@ -7,7 +7,7 @@ def sendEmptyTinData(data):
     sleep(2)
     print(data)
     
-    #...
+    #...  
 
 #send validation / args: boolean - validation
 def sendSealValidation(validation):

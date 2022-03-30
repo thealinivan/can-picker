@@ -8,9 +8,9 @@ def closeCam(vc):
 
 #open Cam / args: int source, array - resolution / return: numpy array - image
 def openCam(src, res):
-    if src==2: print("picking cam active..")
-    if src==4: print("caning cam active..")
-    sleep(2)
+    if src==0: print("picking cam active..")
+    if src==2: print("caning cam active..")
+    #sleep(2)
     vc = cv2.VideoCapture(src)
     vc.set(3, res[0])
     vc.set(4, res[1])
