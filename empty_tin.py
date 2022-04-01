@@ -23,7 +23,7 @@ def getEmptyTin(frame):
     cntr, img, eigenvectors, eigenvalues = getOrientation(contour, frame)
     cv2.drawContours(frame, contour, -1, (0, 255, 0), 1)
     fr = visualiseTinPos(angle, cntr, frame, eigenvectors, eigenvalues)
-    cv2.imwrite("/home/pi/Desktop/can-picker/logs/0-contours.jpg", fr)
+    cv2.imwrite("/home/pi/Desktop/can-picker/cam_logs/0-contours.jpg", fr)
     return tinObj
     
 

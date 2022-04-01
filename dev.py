@@ -35,7 +35,7 @@ def simET(frame):
     if contour is None: return
     (x,y),(MA,ma),angle = cv2.fitEllipse(contour)
     cntr, img, eigenvectors, eigenvalues = getOrientation(contour, frame)
-    prinData()
+    printData(x, y, angle, MA, ma)
     cv2.drawContours(frame, contour, -1, (0, 255, 0), 1)
     fr = visualiseTinPos(angle, cntr, frame, eigenvectors, eigenvalues)
     cv2.imshow("stream", fr)

@@ -17,8 +17,8 @@ def openCam(src, res):
         val, frame = vc.read()
         frames.append(frame)
     #log
-    if src==0: cv2.imwrite("/home/pi/Desktop/can-picker/logs/0-raw.jpg", frames[9])
-    if src==2: cv2.imwrite("/home/pi/Desktop/can-picker/logs/2-raw.jpg", frames[9])
+    if src==0: cv2.imwrite("/home/pi/Desktop/can-picker/cam_logs/0-raw.jpg", frames[9])
+    if src==2: cv2.imwrite("/home/pi/Desktop/can-picker/cam_logs/2-raw.jpg", frames[9])
     closeCam(vc)
     return frames[9]
         
