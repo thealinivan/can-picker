@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 from math import atan2, cos, sin, sqrt, pi
+from time import sleep
 
 #get  orientation / args: numpy array - contour, numpy array - image
 def getOrientation(pts, img):
@@ -19,7 +20,7 @@ def getOrientation(pts, img):
   return [cntr, img, eigenvectors, eigenvalues]
     
 #get contours / args: numpy array - image / return numpy array - contours
-def getContours(frame):
+def getContour(frame):
     cont = None
     mono = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     blur = cv2.blur(mono, (5, 5))
@@ -29,6 +30,9 @@ def getContours(frame):
     close = cv2.morphologyEx(th, cv2.MORPH_OPEN, kernel)
     canny = cv2.Canny(close, 100, 200)
     cont, h = cv2.findContours(close, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
-    if len(cont) < 1: cont = None
-    return cont
+    for i in range(0, len(cont)):
+        area = cv2.contourArea(cont[i])
+        if area < 500 and area > 90000: cont.remove(i)
+    if len(cont) < 1: return None
+    return cont[0]
 
