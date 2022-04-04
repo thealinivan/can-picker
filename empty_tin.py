@@ -3,10 +3,12 @@ from time import sleep
 from image_processing import getContour
 from visualization import visualiseTinPos
 from image_processing import getOrientation
+from camera_calibration import undistortImage
 
 #open Cam / args: int source, array - resolution / return: array - ???data
-def getEmptyTin(frame):
+def getEmptyTin(src, frame):
     print("getting empty tin data..")
+    #frame = undistortImage(src, frame[95:460, 290:555])
     frame = frame[95:460, 290:555]
     contour = getContour(frame)
     if contour is None: return None

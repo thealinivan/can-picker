@@ -3,11 +3,13 @@ from time import sleep
 from image_processing import getContour
 from image_processing import getOrientation
 from visualization import visualiseTinPos
+from camera_calibration import undistortImage
 
 #get seal validation / args: numpy array - image / return: boolean - seal validation
-def getSealValidation(frame):
+def getSealValidation(src, frame):
     print("getting seal validation..")
-    frame = frame[145:510, 240:505]
+    #frame = undistortImage(src, frame[145:510, 240:505])
+    frame= frame[145:510, 240:505]
     contour = getContour(frame)
     if contour is None: return None
     (x,y),(MA,ma),angle = cv2.fitEllipse(contour)

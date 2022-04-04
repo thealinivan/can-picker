@@ -5,7 +5,7 @@ import cv2 as cv
 import glob
 from time import sleep
 
-def calibrateCam(src, res):
+def calibrateCam(src):
     # termination criteria
     criteria = (cv.TERM_CRITERIA_EPS + cv.TERM_CRITERIA_MAX_ITER, 30, 0.001)
     # prepare object points, like (0,0,0), (1,0,0), (2,0,0) ....,(6,5,0)
@@ -30,5 +30,19 @@ def calibrateCam(src, res):
             cv.imshow('img', img)
             cv.waitKey(27)
     cv.destroyAllWindows()
+    ret, mtx, dist, rvecs, tvecs = cv2.calibrateCamera(objpoints, imgpoints, gray.shape[::-1], None, None)
+    return [mtx, dist]
     
-calibrateCam(0, [960, 1280])
+def undistortImage(src, img):
+    mtx, dist = calibrateCam(src)
+    h, w = img.shape[:2]
+    newcameramtx, roi = cv2getOptimalNewCameraMatrix()
+    undst = cv2.undistort(img, mtx, dist, None, newcameramtx)
+    x, y, w, h = roi
+    undst = dst[y:y+h, x:x+w]
+    return undst
+    
+    
+    
+
+    

@@ -17,7 +17,7 @@ def start():
         #empty tin
         emptyTin = None
         while emptyTin == None:
-            emptyTin = getEmptyTin(openCam(0, res))
+            emptyTin = getEmptyTin(0, openCam(0, res))
         requestEmptyTinData(emptyTin)
         
         #RFID validation
@@ -29,7 +29,7 @@ def start():
         #seal validation
         sealValid = None
         while sealValid == None:
-            sealValid = getSealValidation(openCam(2, res))
+            sealValid = getSealValidation(2, openCam(2, res))
         requestSealValidation(sealValid)
         
         #RFID validation
