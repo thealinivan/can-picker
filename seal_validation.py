@@ -12,10 +12,10 @@ def getSealValidation(src, frame):
     frame= frame[145:510, 240:505]
     contour = getContour(frame)
     if contour is None: return None
-    (x,y),(MA,ma),angle = cv2.fitEllipse(contour)
-    
-    sealValidation = True
-    
+    (x,y),(MA,ma),angle = cv2.fitEllipse(contour) 
+    sealValidation = False
+    axisRatio = MA/ma
+    if axisRatio > 0.975: sealValidation = True
     #log
     cntr, img, eigenvectors, eigenvalues = getOrientation(contour, frame)
     cv2.drawContours(frame, contour, -1, (0, 255, 0), 1)
