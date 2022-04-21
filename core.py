@@ -6,6 +6,7 @@ from image_processing import getOrientation
 from image_processing import getContour
 from math import atan2, cos, sin, sqrt, pi
 from visualization import visualiseTinPos
+from camera_calibration import undistortImage
 
 #empty tin
 def requestEmptyTin():
@@ -21,7 +22,7 @@ def requestEmptyTin():
         #process image
         cv2.imwrite("logs/0-raw.jpg", frame) #log
         frame = frame[95:460, 290:555] # crop res: 365x265
-        #frame = undistortImage(src, frame[95:460, 290:555])
+        if iterator > 50: frame = undistortImage(0, frame) 
         contour = getContour(frame)
         if contour is None: return
         (x,y),(MA,ma),angle = cv2.fitEllipse(contour)
@@ -62,7 +63,7 @@ def requestSealValidation():
         #process image
         cv2.imwrite("logs/2-raw.jpg", frame) #log
         frame= frame[145:510, 240:505]
-        #frame = undistortImage(src, frame[145:510, 240:505])
+        if iterator >50: frame = undistortImage(2, frame)
         contour = getContour(frame)
         if contour is None: return None
         (x,y),(MA,ma),angle = cv2.fitEllipse(contour) 
