@@ -10,8 +10,7 @@ from camera_calibration import undistortImage
 
 maxF = 50
 res = [960, 1280]
-LConv = 0.810
-lConv = 0.870
+pxmm = 1.08285
 
 #empty tin
 def requestEmptyTin():
@@ -38,11 +37,11 @@ def requestEmptyTin():
         cv2.imwrite("logs/0-contours.jpg", fr)
         cv2.imshow("stream", fr)
         tinObj = {
-            "x": int(x*lConv),
-            "y":int(y*LConv),
+            "x": int(x*pxmm),
+            "y":int(y*pxmm),
             "angle": int(angle),
-            "MA": int(MA*lConv),
-            "ma": int(ma*LConv),
+            "MA": int(MA*pxmm),
+            "ma": int(ma*pxmm),
             }
         print(tinObj)
         log(str(str(int(x)) +','+ str(int(y)) +','+ str(int(angle)) +','+ str(int(MA)) +','+ str(int(ma))), "logs/cam_stabilization_data.txt")
@@ -95,7 +94,9 @@ def requestRFIDValidation():
     print("rfid validation request..")
     sleep(1)
     rfidValidation = False
-    #change it to true if..
+    
+    #...
+            
     log("rfid: "+str(rfidValidation), "logs/log.txt")
     return rfidValidation
 
