@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+import sqlite3
 from time import sleep
 from datetime import datetime
 from image_processing import getOrientation
@@ -7,17 +8,19 @@ from image_processing import getContour
 from math import atan2, cos, sin, sqrt, pi
 from visualization import visualiseTinPos
 from camera_calibration import undistortImage
-from RequstRFID import reqRFIDValidation
+from RequestRFID import reqRFIDValidation
 
 maxF = 50
 res = [960, 1280]
 pxmm = 1.08285
+pickingCam = 0
+sealCam = 3
 
 #empty tin
 def requestEmptyTin():
     print("empty tin request..")
     sleep(1)
-    vce = cv2.VideoCapture(0)
+    vce = cv2.VideoCapture(pickingCam)
     vce.set(3, res[0])
     vce.set(4, res[1])
     iterator = 0
@@ -25,7 +28,7 @@ def requestEmptyTin():
         val, frame = vce.read()
         iterator += 1
         #process image
-        if iterator > maxF: frame = undistortImage(0, frame)
+        if iterator > maxF: frame = undistortImage(pickingCam, frame)
         cv2.imwrite("logs/0-raw.jpg", frame) #log
         frame = frame[100:450, 300:550] # crop res: 350 x 250
         contour = getContour(frame)
@@ -37,6 +40,7 @@ def requestEmptyTin():
         #log
         cv2.imwrite("logs/0-contours.jpg", fr)
         cv2.imshow("stream", fr)
+        tinValList = [int(x*pxmm), int(y*pxmm), int(angle), int(MA*pxmm), int(ma*pxmm)]
         tinObj = {
             "x": int(x*pxmm),
             "y":int(y*pxmm),
@@ -50,7 +54,7 @@ def requestEmptyTin():
         if iterator > maxF:
             log("tin data: " + str(tinObj), "logs/log.txt")
             vce.release()
-            return tinObj
+            return tinValList
         k=cv2.waitKey(1)
         if k==27: break
     
@@ -58,7 +62,7 @@ def requestEmptyTin():
 def requestSealValidation():
     print("seal validation request..")
     sleep(1)
-    vcc = cv2.VideoCapture(2)
+    vcc = cv2.VideoCapture(sealCam)
     vcc.set(3, res[0])
     vcc.set(4, res[1])
     iterator = 20
@@ -67,7 +71,7 @@ def requestSealValidation():
         iterator += 1
         sealValidation = False
         #process image
-        if iterator > maxF: frame = undistortImage(2, frame)
+        if iterator > maxF: frame = undistortImage(sealCam, frame)
         cv2.imwrite("logs/2-raw.jpg", frame) #log
         frame = frame[100:450, 300:550] # crop res: 350 x 250
         contour = getContour(frame)
@@ -98,8 +102,29 @@ def requestRFIDValidation():
     log("rfid: "+str(rfidValidation), "logs/log.txt")
     return rfidValidation
 
+#update seal data
+def updateTinData(sealVal):
+    #reading in the card id 
+    id, text = CardReader.read()
+    CardReader.write(mineArea)
+    print (id)
+    print (text)
+    datenow = datetime.now()
+    datetimestamp = datenow.strftime('%Y-%m-%-d %H:%M:%S')
+    con = sqlite3.connect('TinTrackingDB.db')
+    cur = con.cursor()
+    #tinfk= cur.lastrowid
+    cur.execute("select Id from TinHistory where RFID=:rfid", {"rfid": id})
+    tinfk= cur.lastrowid
+    cur.execute("Update TinHistory(SealValidation) SET SealValidation=:SealVal where RFID=:rfid", {"SealVal": SealVal},{"rfid": id})
+   #cur.execute("select Id from TinHistory where RFID=:rfid", {"rfid": id})
+    tinfk=cur.fetchone()
+
 def log(data, src):
     f = open(src, "a")
     f.write("{0} -- {1}\n".format(datetime.now().strftime("%Y-%m-%d %H:%M"), data))
     f.close()
 
+
+    
+    

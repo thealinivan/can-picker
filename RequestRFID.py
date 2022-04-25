@@ -7,11 +7,8 @@ from datetime import datetime
 CardReader = SimpleMFRC522() 
 print ('Scanning Tin...')
 #Waiting for the UR10 to scan the rfid on the tin tag
-datenow = datetime.now()
-#Setting the timestamp value
-datetimestamp = datenow.strftime('%Y-%m-%-d %H:%M:%S')
-mineArea = "M14/08"
 
+mineArea = "M14/08"
 
 def reqRFIDValidation():
     try:
@@ -21,22 +18,25 @@ def reqRFIDValidation():
         print (id)
         print (text)
         #Opening the database connection
+        #Setting the timestamp value
+        datenow = datetime.now()
+        datetimestamp = datenow.strftime('%Y-%m-%-d %H:%M:%S')
         con = sqlite3.connect('TinTrackingDB.db')
         cur = con.cursor()
         cur.execute("INSERT INTO TinDetails(Id,RFID,CurrentStatus,DiamondMaterial,DateStamp) VALUES (null,?,'New Tin',?,?)",(id,mineArea,datetimestamp,))
         tinfk= cur.lastrowid
-        cur.execute("INSERT INTO TinHistory(Id,TinFK,Status,DateStamp) VALUES (null,?,'New Tin',?)",(tinfk,datetimestamp,))
+        cur.execute("INSERT INTO TinHistory(Id,TinFK,Status,DateStamp,SealValidation) VALUES (null,?,'New Tin',?,0)",(tinfk,datetimestamp,))
         cur.execute("select Id from TinDetails where RFID=:rfid", {"rfid": id})
         tinfk=cur.fetchone()
         print(tinfk)
         con.commit()
         con.close()
         gpio.cleanup()
-        return true
+        return True
         
     except:
         print('somethig went wrong with RFID reading or database')
-        return false
+        return False
     #finally:
         
     
