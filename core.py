@@ -7,6 +7,7 @@ from image_processing import getContour
 from math import atan2, cos, sin, sqrt, pi
 from visualization import visualiseTinPos
 from camera_calibration import undistortImage
+from RequstRFID import reqRFIDValidation
 
 maxF = 50
 res = [960, 1280]
@@ -93,10 +94,7 @@ def requestSealValidation():
 def requestRFIDValidation():
     print("rfid validation request..")
     sleep(1)
-    rfidValidation = False
-    
-    #...
-            
+    rfidValidation = reqRFIDValidation()         
     log("rfid: "+str(rfidValidation), "logs/log.txt")
     return rfidValidation
 
@@ -104,3 +102,4 @@ def log(data, src):
     f = open(src, "a")
     f.write("{0} -- {1}\n".format(datetime.now().strftime("%Y-%m-%d %H:%M"), data))
     f.close()
+

@@ -8,18 +8,16 @@ import sys
 import urlib
 
 is_py2 = sys.version[0] == '2'
-if is_py2:
-  from SimpleXMLRPCServer import SimpleXMLRPCServer
-else:
-  from xmlrpc.server import SimpleXMLRPCServer
+if is_py2: from SimpleXMLRPCServer import SimpleXMLRPCServer
+if not is_py2: from xmlrpc.server import SimpleXMLRPCServer
 
-def get_next_pose():
-    #assert type(p) is dict
-    #pose = urlib.poseToList(p)
-    #print("Received pose: " + str(pose))
-    #pose = [-0.18, -0.61, 0.23, 0, 3.12, 0.04];
-    #return urlib.listToPose(pose);
-    return "Walabila!"    
+def get_next_pose(p):
+    assert type(p) is dict
+    pose = urlib.poseToList(p)
+    print("Received pose: " + str(pose))
+    pose = [-0.18, -0.61, 0.23, 0, 3.12, 0.04];
+    return urlib.listToPose(pose);
+    #return "Walabila!"    
     
 server = SimpleXMLRPCServer(("localhost", 50000))
 server.RequestHandlerClass.protocol_version = "HTTP/1.1"
