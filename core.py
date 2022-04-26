@@ -10,14 +10,32 @@ from visualization import visualiseTinPos
 from camera_calibration import undistortImage
 from RequestRFID import reqRFIDValidation
 
-maxF = 50
-res = [960, 1280]
-pxmm = 1.08285
-pickingCam = 0
-sealCam = 3
+import sys
+import urlib
 
-#empty tin
-def requestEmptyTin():
+#cam src
+pickingCam = 0
+sealCam = 2
+#frames stabilization limit
+maxF = 50
+#frame resolution
+res = [960, 1280]
+#px to mm conversiton rate
+pxmm = 1.08285
+#robot work object coordinate in (mm)
+xR = 1050
+yR = 600
+zR = 150
+
+#
+rotationAngle = 0
+gripperOpening = 0
+shortAxis = 0
+gripperDown = 0.1
+#
+
+#request empty tin / args - pose:current robot pose / return - pose:target pose
+def requestEmptyTin(p):
     print("empty tin request..")
     sleep(1)
     vce = cv2.VideoCapture(pickingCam)
@@ -32,7 +50,7 @@ def requestEmptyTin():
         cv2.imwrite("logs/0-raw.jpg", frame) #log
         frame = frame[100:450, 300:550] # crop res: 350 x 250
         contour = getContour(frame)
-        if contour is None: return
+        if contour is None: return p
         (x,y),(MA,ma),angle = cv2.fitEllipse(contour)
         cntr, img, eigenvectors, eigenvalues = getOrientation(contour, frame)
         cv2.drawContours(frame, contour, -1, (0, 255, 0), 1)
@@ -40,25 +58,44 @@ def requestEmptyTin():
         #log
         cv2.imwrite("logs/0-contours.jpg", fr)
         cv2.imshow("stream", fr)
-        tinValList = [int(x*pxmm), int(y*pxmm), int(angle), int(MA*pxmm), int(ma*pxmm)]
+        #prepare data
+        xC = x*pxmm
+        yC = y*pxmm
+        angle = angle
+        MA = MA*pxmm
+        ma = ma*pxmm
+        #relate robot base to work object (transform frames) an convert to metters
+        x = (xR-yC)/1000
+        y = (yR-xC)/1000
+        z = (MA+30)/1000
         tinObj = {
-            "x": int(x*pxmm),
-            "y":int(y*pxmm),
+            "x": x,
+            "y": y,
             "angle": int(angle),
-            "MA": int(MA*pxmm),
-            "ma": int(ma*pxmm),
+            "MA": int(MA),
+            "ma": int(ma),
             }
         print(tinObj)
-        log(str(str(int(x)) +','+ str(int(y)) +','+ str(int(angle)) +','+ str(int(MA)) +','+ str(int(ma))), "logs/cam_stabilization_data.txt")
+        log(str(str(x) +','+ str(y) +','+ str(int(angle)) +','+ str(int(MA)) +','+ str(int(ma))), "logs/cam_stabilization_data.txt")
         #close cam and return
         if iterator > maxF:
+            if tinObj["ma"] < 20: return p
             log("tin data: " + str(tinObj), "logs/log.txt")
             vce.release()
-            return tinValList
+            
+            #
+            rotationAngle = angle
+            gripperOpening = int(MA+30)
+            shortAxis = MA/1000
+            #
+            
+            pose = [x, y, z, p["rx"], p["ry"], p["rz"]];
+            return urlib.listToPose(pose);
+            #return tinValList
         k=cv2.waitKey(1)
         if k==27: break
     
-#seal validation
+#seal validation / return: boolean
 def requestSealValidation():
     print("seal validation request..")
     sleep(1)
@@ -75,7 +112,7 @@ def requestSealValidation():
         cv2.imwrite("logs/2-raw.jpg", frame) #log
         frame = frame[100:450, 300:550] # crop res: 350 x 250
         contour = getContour(frame)
-        if contour is None: return None
+        if contour is None: return False
         (x,y),(MA,ma),angle = cv2.fitEllipse(contour) 
         cntr, img, eigenvectors, eigenvalues = getOrientation(contour, frame)
         cv2.drawContours(frame, contour, -1, (0, 255, 0), 1)
@@ -88,13 +125,14 @@ def requestSealValidation():
         log(str(sealValidation), "logs/cam_stabilization_data.txt")
         #close cam and return
         if iterator > maxF:
+            #if tinObj["ma"] < 10: return None
             log("seal: "+str(sealValidation), "logs/log.txt")
             vcc.release()
             return sealValidation
         k=cv2.waitKey(1)
         if k==27: break
     
-#rfid validation
+#rfid validation / return boolean
 def requestRFIDValidation():
     print("rfid validation request..")
     sleep(1)
@@ -102,7 +140,7 @@ def requestRFIDValidation():
     log("rfid: "+str(rfidValidation), "logs/log.txt")
     return rfidValidation
 
-#update seal data
+#update seal data / return - boolean
 def updateTinData(sealVal):
     #reading in the card id 
     id, text = CardReader.read()
@@ -119,6 +157,15 @@ def updateTinData(sealVal):
     cur.execute("Update TinHistory(SealValidation) SET SealValidation=:SealVal where RFID=:rfid", {"SealVal": SealVal},{"rfid": id})
    #cur.execute("select Id from TinHistory where RFID=:rfid", {"rfid": id})
     tinfk=cur.fetchone()
+
+#
+def requestEmptyTinRotationAngle(): return rotationAngle
+def requestEmptyTinGrippingWidth(): return gripperOpening
+def requestEmptyTinShortAxis(p):
+    z = shortAxis-gripperDown
+    pose = [p["x"], ["y"], z, p["rx"], p["ry"], p["rz"]];
+    return urlib.listToPose(pose);
+#
 
 def log(data, src):
     f = open(src, "a")

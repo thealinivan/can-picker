@@ -4,13 +4,12 @@ from mfrc522 import SimpleMFRC522
 import sqlite3
 from datetime import datetime
 #Creating an object of the SimpleMFRC522 to enable scanning and writing to the tin tag
-CardReader = SimpleMFRC522() 
-print ('Scanning Tin...')
-#Waiting for the UR10 to scan the rfid on the tin tag
-
+gpio.setwarnings(False)
+CardReader = SimpleMFRC522()
 mineArea = "M14/08"
 
 def reqRFIDValidation():
+    print ('Scanning Tin...')
     try:
        	#reading in the card id 
        	id, text = CardReader.read()
