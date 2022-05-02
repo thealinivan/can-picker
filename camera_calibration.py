@@ -17,6 +17,8 @@ def calibrateCam(src):
     imgpoints = [] # 2d points in image plane.
     images = glob.glob('camera_calibration/'+ str(src)+'/*.jpg')
     iterator = 0
+    gray = None
+    
     for fname in images:
         img = cv.imread(fname)
         gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)

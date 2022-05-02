@@ -1,0 +1,118 @@
+ Program
+   BeforeStart
+     rpicon≔rpc_factory("xmlrpc","http://192.168.1.100:50001")
+   Robot Program
+     mid≔Point_4_const
+     Loop
+       MoveJ
+         RG6(20)
+         homepose
+       TinAvailable≔ False 
+       Loop TinAvailable== False 
+         TinAvailable≔rpicon.requestIsEmptyTin()
+       TinTopPose≔rpicon.requestEmptyTinTopPose()
+       MoveJ
+         TinTopPose
+       RG6(120)
+       JointAngles≔rpicon.requestGripperRotationJointAngles(get_target_joint_positions(), 0)
+       RotatedPose≔get_forward_kin(JointAngles)
+       MoveJ
+         RotatedPose
+       TinScanPose≔rpicon.requestEmptyTinScanPose(RotatedPose)
+       MoveL
+         TinScanPose
+       RfidVal≔rpicon.requestRFIDValidation()
+       If RfidVal == False 
+         MoveL
+           RotatedPose
+         JointAngles≔rpicon.requestGripperRotationJointAngles(get_target_joint_positions(), -179)
+         RotatedPose≔get_forward_kin(JointAngles)
+         MoveJ
+           RotatedPose
+         TinScanPose≔rpicon.requestEmptyTinScanPose(RotatedPose)
+         MoveL
+           TinScanPose
+         Wait: 3.0
+         TinGrabPose≔rpicon.requestEmptyTinGrabPose(RotatedPose)
+         MoveL
+           TinGrabPose
+         Wait: 3.0
+       TinGrabPose≔rpicon.requestEmptyTinGrabPose(RotatedPose)
+       MoveL
+         TinGrabPose
+       Wait: 3.0
+       RG6(50)
+       TinLeavePose≔rpicon.requestEmptyTinLeavePose(TinGrabPose)
+       MoveL
+         TinLeavePose
+       If RfidVal== True 
+         MoveJ
+           mid
+         CaningTopPose≔rpicon.requestCaningTopPose()
+         MoveJ
+           CaningTopPose
+         CaningGrabPose≔rpicon.requestCaningGrabPose(CaningTopPose)
+         MoveL
+           CaningGrabPose
+         RG6(120)
+         MoveL
+           CaningTopPose
+         Wait: 3.0
+         sealhome≔Point_5_const
+         MoveL
+           sealhome
+           Wait: 3.0
+           Wait: 3.0
+         SealVal≔rpicon.requestSealValidation()
+         'MoveL'
+         MoveJ
+           CaningGrabPose
+         Wait: 3.0
+         CaningScanPose≔rpicon.requestCaningScanPose(CaningGrabPose)
+         MoveL
+           CaningScanPose
+         Wait: 3.0
+         RfidUpdate≔rpicon.requestIsTinUpdated(SealVal)
+         Wait: 3.0
+         MoveL
+           CaningGrabPose
+         Wait: 3.0
+         RG6(50)
+         MoveL
+           CaningTopPose
+         If SealVal== True  and  RfidUpdate== True 
+           pvTopNextPose≔rpicon.requestPackingValidTopNextPose()
+           MoveJ
+             pvTopNextPose
+           pvRelNextPose≔rpicon.requestPackingValidReleaseNextPose(pvTopNextPose)
+           MoveL
+             pvRelNextPose
+           RG6(120)
+           MoveL
+             pvTopNextPose
+         Else
+           pnvTopNextPose≔rpicon.requestPackingNotValidTopNextPose()
+           MoveJ
+             pnvTopNextPose
+           pnvRelNextPose≔rpicon.requestPackingNotValidReleaseNextPose(pnvTopNextPose)
+           MoveL
+             pnvRelNextPose
+           RG6(120)
+           MoveL
+             pnvTopNextPose
+       Else
+         CaningTopPose≔rpicon.requestCaningTopPose()
+         MoveJ
+           mid
+         MoveJ
+           CaningTopPose
+         pnvTopNextPose≔rpicon.requestPackingNotValidTopNextPose()
+         MoveJ
+           pnvTopNextPose
+         pnvRelNextPose≔rpicon.requestPackingNotValidReleaseNextPose(pnvTopNextPose)
+         MoveL
+           pnvRelNextPose
+         Wait: 3.0
+         RG6(120)
+         MoveL
+           pnvTopNextPose
