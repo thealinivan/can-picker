@@ -16,7 +16,8 @@ mineArea= "M28/03"
 IdRead = False
 gpio.setwarnings(False)
 
-def reqRFIDValidation():
+
+def updateTinData(sealVal):
     timeoutval = time.time() + 5
     while time.time() < timeoutval:
         time.sleep(1)
@@ -30,19 +31,20 @@ def reqRFIDValidation():
             elif status != None:
                 #reading in the value and writing to the tin tag
                 id, text = CardReader.read()
-                CardReader.write(mineArea)
                 print ('RFID found ')
                 datenow = datetime.now()
                 datetimestamp = datenow.strftime('%Y-%m-%-d %H:%M:%S')
                 #Opening the database connection
                 con = sqlite3.connect('TinTrackingDB.db')
                 cur = con.cursor()
-                 #inserting into tin details the tin values
-                cur.execute("INSERT INTO TinDetails(Id,RFID,CurrentStatus,DiamondMaterial,DateStamp) VALUES (null,?,'New Tin',?,?)",(id,mineArea,datetimestamp,))
-                tinfk= cur.lastrowid
-                #Updating the tin history for tin tracking
-                cur.execute("INSERT INTO TinHistory(Id,TinFK,Status,DateStamp,SealValidation) VALUES (null,?,'New Tin',?,0)",(tinfk,datetimestamp,))
-                #commiting the database changes 
+                cur.execute("select Id from TinDetails where RFID=:rfid", {"rfid": id})
+                tinFkRow = cur.fetchone()
+                tinfk = tinFkRow[0]+1
+                print(tinfk)
+                cur.execute("INSERT INTO TinHistory(Id,TinFK,Status,DateStamp,SealValidation) VALUES (null,?,'Seal Validated',?,?)",(tinfk,datetimestamp,sealVal))
+                if (sealVal): Packing = 'Valid Consignment'
+                else: Packing = 'Invalid Consignment'
+                cur.execute("INSERT INTO TinHistory(Id,TinFK,Status,DateStamp,SealValidation) VALUES (null,?,?,?,?)",(tinfk,Packing,datetimestamp,sealVal))
                 con.commit()
                 con.close()
                 IdRead = True
@@ -50,5 +52,4 @@ def reqRFIDValidation():
         finally:
             gpio.cleanup()
             time.sleep(1)
-    return IdRead
-        
+    return IdRead 

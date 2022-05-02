@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 from core import requestRFIDValidation
-from core import updateTinData
+from core import requestIsTinUpdated
 from core import requestIsEmptyTin
 from core import requestEmptyTinTopPose
 from core import requestGripperRotationJointAngles
@@ -14,7 +14,9 @@ from core import requestPackingValidReleaseNextPose
 from core import requestPackingNotValidTopNextPose
 from core import requestPackingNotValidReleaseNextPose
 from core import requestEmptyTinLeavePose
-
+from core import requestEmptyTinScanPose
+from core import requestCaningScanPose
+import RPi.GPIO as gpio
 import sys
 import urlib
 
@@ -22,18 +24,21 @@ is_py2 = sys.version[0] == '2'
 if is_py2: from SimpleXMLRPCServer import SimpleXMLRPCServer
 if not is_py2: from xmlrpc.server import SimpleXMLRPCServer
 
+
 PORT = 50001
 HOST = ""   
 
 def runServer():
+    gpio.setwarnings(False)
     server = SimpleXMLRPCServer((HOST, PORT))
     server.RequestHandlerClass.protocol_version = "HTTP/1.1"
     print("Listening on port " + str(PORT) + "...")
     
     server.register_function(requestRFIDValidation, "requestRFIDValidation")
-    server.register_function(updateTinData, "updateTinData")
+    server.register_function(requestIsTinUpdated, "requestIsTinUpdated")
     server.register_function(requestIsEmptyTin, "requestIsEmptyTin")
     server.register_function(requestEmptyTinTopPose, "requestEmptyTinTopPose")
+    server.register_function(requestEmptyTinScanPose, "requestEmptyTinScanPose")
     server.register_function(requestGripperRotationJointAngles, "requestGripperRotationJointAngles")
     server.register_function(requestEmptyTinGrabPose, "requestEmptyTinGrabPose")
     server.register_function(requestCaningTopPose, "requestCaningTopPose")
@@ -44,6 +49,7 @@ def runServer():
     server.register_function(requestPackingNotValidTopNextPose, "requestPackingNotValidTopNextPose")
     server.register_function(requestPackingNotValidReleaseNextPose, "requestPackingNotValidReleaseNextPose")
     server.register_function(requestEmptyTinLeavePose, "requestEmptyTinLeavePose")
+    server.register_function(requestCaningScanPose, "requestCaningScanPose")
     
     server.serve_forever()
 

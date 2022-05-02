@@ -11,6 +11,7 @@ from camera_calibration import undistortImage
 from RequestRFID import reqRFIDValidation
 from mfrc522 import SimpleMFRC522
 import RPi.GPIO as gpio
+from UpdateTin import updateTinData
 
 import sys
 import urlib
@@ -21,11 +22,12 @@ sealCam = 2
 maxF = 50 #frames stabilization limit
 res = [960, 1280] #frame resolution
 pxmm = 1.08285 #px to mm conversiton rate
+#pxmm = 0.92592
 #robot work object coordinate in (mm)
 xR = 1050
 yR = 600
 zR = 150
-zOffset = -0.25
+zOffset = 0
 
 #default rotation
 RX = 1.378
@@ -33,11 +35,11 @@ RY = 2.847
 RZ = -0.007
 
 #rfid scanner tollerance position
-RFIDScannerTollerance = 0.1
+RFIDScannerTollerance = 0.043
 
 #packing data
-validPackingX = 1.2
-notValidPackingX = 1.2
+validPackingX = 0.95
+notValidPackingX = 0.95
 validPackingY = -0.381
 notValidPackingY = -0.538
 validTinCount = 0
@@ -85,6 +87,7 @@ def runPickingCam():
         (x,y),(MA,ma),angle = cv2.fitEllipse(contour)
         cntr, img, eigenvectors, eigenvalues = getOrientation(contour, frame)
         cv2.drawContours(frame, contour, -1, (0, 255, 0), 1)
+        cv2.ellipse(frame, (int(x), int(y)), (int(MA/2), int(ma/2)), int(angle), 0, 360, (0, 255, 0), 1)
         fr = visualiseTinPos(angle, cntr, frame, eigenvectors, eigenvalues)
         #log
         cv2.imwrite("logs/0-contours.jpg", fr)
@@ -98,7 +101,6 @@ def runPickingCam():
         #relate robot base to work object (transform frames) an convert to metters
         x = (xR-yC)/1000
         y = (yR-xC)/1000
-        z = (MA+30)/1000
         tinObj = {"x": x,"y": y,"angle": int(angle),"MA": int(MA),"ma": int(ma),}
         print(tinObj)
         log(str(str(x) +','+ str(y) +','+ str(int(angle)) +','+ str(int(MA)) +','+ str(int(ma))), "logs/cam_stabilization_data.txt")
@@ -106,7 +108,7 @@ def runPickingCam():
         if iterator > maxF:
             tinX = x
             tinY = y
-            tinZ = z+zOffset
+            tinZ = MA/1000
             tinAngle = int(angle)
             tinMA = MA/1000
             tinma = ma/1000
@@ -146,34 +148,71 @@ def runCaningCam():
         log(str(sealValidation), "logs/cam_stabilization_data.txt")
         #write global interfacing data
         if iterator > maxF:
-            if tinma < 20:  sealValidation = False
+            if tinma > 49: sealValidation = True
+            if tinma < 50: sealValidation = False
             log("seal: "+str(sealValidation), "logs/log.txt")
             vcc.release()
-            sealValidation = True
+            
         k=cv2.waitKey(1)
         if k==27: break
 
 def requestIsEmptyTin():
-    print("empty tin request..")
+    print("empty tin present..")
     runPickingCam()
     print(isTinPresent)
     return isTinPresent
+
 def requestEmptyTinTopPose():
-    pose = {"x":tinX, "y":tinY, "z":tinZ, "rx":RX, "ry":RY, "rz":RZ}
+    print("empty tin top pose..")
+    pose =  {"x":tinX, "y":tinY, "z":tinZ + 0.03, "rx":RX, "ry":RY, "rz":RZ}
     print(pose)
     return pose
+
 def requestGripperRotationJointAngles(q, a):
-    #print(q)
-    return [q[0], q[1], q[2], q[3], q[4], d2r(tinAngle + r2d(q[0]) + a)]
-def requestEmptyTinGrabPose(p): return {"x":p["x"], "y":p["y"], "z":(tinZ-RFIDScannerTollerance), "rx":p["rx"], "ry":p["ry"], "rz":p["rz"]}
+    print("empty tin top pose..")
+    jointAngles = [q[0], q[1], q[2], q[3], q[4], d2r(tinAngle + r2d(q[0]) + a)]
+    print(jointAngles)
+    return jointAngles
+
+def requestEmptyTinScanPose(p):
+    print("empty tin scan pose..")
+    radius = tinMA/2
+    scanZ = 0.2
+    scanZ = (radius + (RFIDScannerTollerance - radius))
+    pose = {"x":p["x"], "y":p["y"], "z":scanZ, "rx":p["rx"], "ry":p["ry"], "rz":p["rz"]}
+    print(pose)
+    return pose
+
+def requestEmptyTinGrabPose(p):
+    print("empty tin grab pose..")
+    pose = {"x":p["x"], "y":p["y"], "z":(tinMA/2 - (tinMA/2*0.05)), "rx":p["rx"], "ry":p["ry"], "rz":p["rz"]}
+    print(pose)
+    return pose
+
 def requestEmptyTinLeavePose(p):
-    return {"x": p["x"], "y":p["y"], "z": (p["z"] + (tinma*1.5)), "rx":p["rx"], "ry":p["ry"], "rz":p["rz"]}
+    print("empty tin leave pose..")
+    pose = {"x": p["x"], "y":p["y"], "z": 0.4, "rx":p["rx"], "ry":p["ry"], "rz":p["rz"]}
+    print(pose)
+    return pose
+
 def requestCaningTopPose():
-    z = -0.3 + tinma*3
-    return {"x":1.128, "y":-0.014, "z":z, "rx":2.465, "ry":-2.301, "rz":2.439}
+    print("canning top pose..")
+    pose = {"x":0.88, "y":-0.014, "z":0.4 , "rx":2.465, "ry":-2.301, "rz":2.439}
+    print(pose)
+    return pose
+
+def requestCaningScanPose(p):
+    print("canning  scan pose...")
+    radius = tinMA/2
+    pose = {"x": ( p["x"] + (radius - RFIDScannerTollerance) ), "y":p["y"], "z": p["z"], "rx":p["rx"], "ry":p["ry"], "rz":p["rz"]}
+    print(pose)
+    return pose
+
 def requestCaningGrabPose(p):
-    z = p["z"] - 0.09 - tinma
-    return {"x":1.128, "y":-0.014, "z":z, "rx":2.465, "ry":-2.301, "rz":2.439}
+    print("canning grab pose..")
+    pose = {"x": (p["x"]), "y":p["y"], "z": (tinma/2 - (tinMA*0.12)), "rx":p["rx"], "ry":p["ry"], "rz":p["rz"]}
+    print(pose)
+    return pose
 
 def requestSealValidation():
     print("seal validation request..")
@@ -181,61 +220,50 @@ def requestSealValidation():
     return sealValidation
 
 def requestPackingValidTopNextPose():
+    print("packing-valid top pose..")
     global validTinCount
     x = validPackingX - validTinCount*tinMA - validTinCount*tinGap
     validTinCount += 1
-    z = -0.3 + tinma*3 + 0.05
-    return {"x": x, "y":validPackingY, "z": z, "rx":packingRX, "ry":packingRY, "rz":packingRZ}
+    pose = {"x": x, "y":validPackingY, "z": 0.4, "rx":packingRX, "ry":packingRY, "rz":packingRZ}
+    print(pose)
+    return pose
     
 def requestPackingNotValidTopNextPose():
+    print("packing-not-valid top pose..")
     global notValidTinCount
     x = notValidPackingX - notValidTinCount*tinMA - notValidTinCount*tinGap
     notValidTinCount += 1
-    z = -0.3 + tinma*3 + 0.05
-    return {"x": x, "y":notValidPackingY, "z":z, "rx":packingRX, "ry":packingRY, "rz":packingRZ}
+    pose = {"x": x, "y":notValidPackingY, "z":0.4, "rx":packingRX, "ry":packingRY, "rz":packingRZ}
+    print(pose)
+    return pose
 
 def requestPackingValidReleaseNextPose(p):
-    z = (p["z"]-tinma - tinma/2)
-    return {"x": p["x"], "y":p["y"], "z":z, "rx":p["rx"], "ry":p["ry"], "rz":p["rz"]}
+    print("packing-valid release pose..")
+    pose = {"x": p["x"], "y":p["y"], "z":(tinma/2 - (tinma*0.12)), "rx":p["rx"], "ry":p["ry"], "rz":p["rz"]}
+    print(pose)
+    return pose
     
 def requestPackingNotValidReleaseNextPose(p):
-    z = (p["z"]-tinma - tinma/2)
-    return {"x": p["x"], "y":p["y"], "z":z, "rx":p["rx"], "ry":p["ry"], "rz":p["rz"]}
+    print("packing-not-valid release pose..")
+    pose = {"x": p["x"], "y":p["y"], "z":(tinma/2 - (tinma*0.12)), "rx":p["rx"], "ry":p["ry"], "rz":p["rz"]}
+    print(pose)
+    return pose
     
 
 #rfid validation / return boolean
 def requestRFIDValidation():
     print("rfid validation request..")
-    sleep(1)
     rfidValidation = reqRFIDValidation()         
     log("rfid: "+str(rfidValidation), "logs/log.txt")
     return rfidValidation
 
 #update seal data / return - boolean
-def updateTinData(sealVal):
+def requestIsTinUpdated(sealVal):
     #reading in the card id
-    Packing =''
-    gpio.setwarnings(False)
-    CardReader = SimpleMFRC522()
-    id, text = CardReader.read()
-    print (id)
-    print (text)
-    datenow = datetime.now()
-    datetimestamp = datenow.strftime('%Y-%m-%-d %H:%M:%S')
-    con = sqlite3.connect('TinTrackingDB.db')
-    cur = con.cursor()
-    # Referencing the tin RFID 
-    cur.execute("select Id from TinDetails where RFID=:rfid", {"rfid": id})
-    tinFkRow = cur.fetchone()
-    tinfk = tinFkRow[0]+1
-    print(tinfk)
-    cur.execute("INSERT INTO TinHistory(Id,TinFK,Status,DateStamp,SealValidation) VALUES (null,?,'Seal Validated',?,?)",(tinfk,datetimestamp,sealVal))
-    if (sealVal): Packing = 'Valid Consignment'
-    else: Packing = 'Invalid Consignment'
-    cur.execute("INSERT INTO TinHistory(Id,TinFK,Status,DateStamp,SealValidation) VALUES (null,?,?,?,?)",(tinfk,Packing,datetimestamp,sealVal))
-    con.commit()
-    con.close()
-    gpio.cleanup()
+    print("update tin data..")
+    tinUpdate = updateTinData(sealVal)         
+    log("rfid: "+str(tinUpdate), "logs/log.txt")
+    return tinUpdate
 
 def log(data, src):
     f = open(src, "a")
