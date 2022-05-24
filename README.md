@@ -2,6 +2,8 @@ Diamonds Can Picker
 
 #Get started
 
+See documentation files to setup the hardware
+
 In terminal window run
 ```
 git clone https://labcode.mdx.ac.uk/msc-robotics/can-picker.git
